@@ -538,8 +538,9 @@ function startGame() {
 }
 
 document.getElementById("shareTwitterBtn").onclick = () => {
-    const tweetText = encodeURIComponent(`I scored ${score} in the 4x6 Stork Memory Game! Beat my score! 🧠`);
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+    const tweetText = encodeURIComponent(`I scored ${score} in the @StorkOracle Memory Game! Beat my score! 🧠 
+    https://stork-memory-game.vercel.app/`);
+    const twitterUrl = `https://x.com/intent/tweet?text=${tweetText}`;
     window.open(twitterUrl, '_blank');
 };
 
