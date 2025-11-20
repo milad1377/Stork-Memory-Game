@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Stork Memory Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<style>
+/* ---------------------------------- KEYFRAMES & ANIMATIONS ---------------------------------- */
+@keyframes fall {
+    0% { transform: translateY(-100%); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+    0% { background-color: #00ff99; }
+    50% { background-color: #00cccc; }
+    100% { background-color: #00ff99; }
+}
+
+/* ---------------------------------- BASE STYLES ---------------------------------- */
+body {
+    background: #1a1a2e;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 20px;
+}
+
+#hud, #controls, #game-container {
+    display: none; 
+}
+
+#game-container {
+    margin: 20px auto;
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(6, 1fr); 
+    gap: 1vmin; 
+    width: 90vw;
+    max-width: 450px; 
+    aspect-ratio: 4 / 6; 
+}
+
+.card {
+    width: 100%;
+    height: 100%; 
+    border-radius: 5px; 
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: opacity 0.3s ease-in-out, transform 0.2s, box-shadow 0.2s; 
+    aspect-ratio: 1 / 1;
+    border: 1px solid #555; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); 
+}
+
+/* ---------------------------------- START SCREEN ---------------------------------- */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #1a1a2e;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #fff;
+    font-size: 20px;
+}
+
+#start-screen img {
+    max-width: 80%;
+    max-height: 40vh;
+    margin-bottom: 30px;
+    border-radius: 10px;
+}
+
+.card:active:not(.matched) {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover:not(.matched) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5); 
+}
+
+.card.matched {
+    opacity: 0;
+    pointer-events: none; 
+}
+
+.card.new-entry {
+    animation: fall 0.5s ease-out;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.cover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 5px;
+    background: #333 url('logo.png') center/100% no-repeat; 
+    background-size: cover; 
+    z-index: 2;
+    transition: display 0s;
+}
+
+/* ---------------------------------- UTILITY & HUD ---------------------------------- */
+#hud {
+    margin-top: 20px;
+    font-size: 20px;
+    display: flex; 
+    justify-content: space-around;
+    width: 100%;
+    max-width: 450px;
+}
+
+#controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button {
+    background: #00ff99;
+    border: none;
+    padding: 10px 20px;
+    font-size: 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 10px 5px;
+    transition: background 0.3s, transform 0.1s;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#helpBtn {
+    animation: pulse 1s infinite alternate;
+}
+
+#helpBtn:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+    animation: none;
+}
+
+#helpBtn span {
+    margin-right: 5px;
+}
+
+#result-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 24px;
+    display: none; 
+}
+
+#result-screen h2 {
+    color: #00ff99;
+    font-size: 48px;
+    margin-bottom: 5px;
+}
+#result-screen p {
+    margin: 10px 0;
+}
+#result-screen #high-score-display {
+    color: #ffd700;
+    font-weight: bold;
+    margin-top: 15px;
+}
+</style>
+</head>
+<body>
+
+<div id="start-screen">
+    <h2>Stork Memory Game</h2>
+    <img id="gameLogo" src="game_logo.png" alt="Game Logo"> 
+    <button id="startButton">Start Game</button>
+</div>
+
+<h1 style="display: none;">Stork Memory Game</h1>
+
+<div id="hud">
+    Score: <span id="score">0</span> |
+    Time: <span id="timer">90</span>
+</div>
+
+<div id="controls">
+    <button id="helpBtn">💡 <span id="helpText">Help (3 remaining)</span></button>
+</div>
+
+<div id="game-container"></div>
+
+<div id="result-screen">
+    <h2>Game Over!</h2>
+    <p>Your Final Score: <span id="final-score">0</span></p>
+    <p id="high-score-display"></p>
+    <button id="restartBtn">Start New Game</button>
+    <button id="shareTwitterBtn" style="background: #1DA1F2;">Share on X (Twitter)</button>
+</div>
+
+<script>
+const ROWS = 6;
+const COLS = 4;
+const TOTAL = ROWS * COLS; 
+const SCORE_PER_MATCH = 10; 
+const REVEAL_START_MS = 1000;
+const REVEAL_ON_CLICK_MS = 300;
+const HELP_SHOW_MS = 1000;
+const HIGH_SCORE_KEY = 'storkHighScore';
+
+let TIME_LEFT = 90; 
+const UNIQUE_CARD_COUNT = TOTAL / 2;
+let helpUses = 3; 
+
+const IMAGE_PATHS = [];
+for (let i = 1; i <= UNIQUE_CARD_COUNT; i++) {
+    IMAGE_PATHS.push(`card${i}.png`);
+}
+
+let board = [];
+let revealed = [];
+let lock = false;
+let score = 0;
+let timer;
+
+const timerEl = document.getElementById("timer");
+const scoreEl = document.getElementById("score");
+const helpBtn = document.getElementById("helpBtn");
+const helpTextEl = document.getElementById("helpText"); 
+const resultScreen = document.getElementById("result-screen");
+const highScoreDisplayEl = document.getElementById("high-score-display");
+const startScreenEl = document.getElementById("start-screen");
+
+// ----------------------------
+// Sound Effects using Web Audio API
+// ----------------------------
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(freq, type = "sine", duration = 0.1, volume = 0.2) {
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.value = freq;
+
+    gainNode.gain.value = volume;
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration);
+}
+
+// Specific Game Sounds
+function playFlipSound() {
+    playSound(600, "square", 0.1, 0.2); // کارت فلپ
+}
+
+function playMatchSound() {
+    playSound(400, "sine", 0.1, 0.2);
+    setTimeout(() => playSound(500, "sine", 0.1, 0.2), 100);
+    setTimeout(() => playSound(600, "sine", 0.15, 0.25), 200);
+}
+
+function playMismatchSound() {
+    playSound(200, "sawtooth", 0.2, 0.3);
+}
+
+// ---------------------------------
+// Game Functions
+// ---------------------------------
+function getHighScore() {
+    return parseInt(localStorage.getItem(HIGH_SCORE_KEY) || 0, 10);
+}
+
+function updateHighScore() {
+    const currentHighScore = getHighScore();
+    if (score > currentHighScore) {
+        localStorage.setItem(HIGH_SCORE_KEY, score);
+        return score;
+    }
+    return currentHighScore;
+}
+
+function generateBoard() {
+    board = [...IMAGE_PATHS, ...IMAGE_PATHS];
+    for (let i = board.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [board[i], board[j]] = [board[j], board[i]];
+    }
+}
+
+function createBoardUI(){
+    const container = document.getElementById("game-container");
+    container.innerHTML = "";
+    for(let i=0;i<TOTAL;i++){
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.index = i;
+
+        const img = document.createElement("img");
+        img.src = board[i];
+
+        const cover = document.createElement("div");
+        cover.className = "cover";
+
+        card.appendChild(img);
+        card.appendChild(cover);
+        container.appendChild(card);
+
+        card.addEventListener("click", () => handleCardClick(card));
+    }
+}
+
+function revealCard(card){
+    card.querySelector(".cover").style.display = "none";
+}
+function hideCard(card){
+    card.querySelector(".cover").style.display = "block";
+}
+function revealAll(){
+    document.querySelectorAll(".card").forEach(revealCard);
+}
+function hideAll(){
+    document.querySelectorAll(".card").forEach(hideCard);
+}
+
+function endGame() {
+    clearInterval(timer);
+    lock = true;
+    
+    const finalHighScore = updateHighScore();
+    document.getElementById("final-score").textContent = score;
+    highScoreDisplayEl.textContent = `High Score: ${finalHighScore}`;
+    resultScreen.style.display = 'flex';
+}
+
+function handleCardClick(card){
+    if(lock) return;
+    
+    if(card.querySelector(".cover").style.display === "none" || card.classList.contains("matched")) return;
+
+    revealCard(card);
+    playFlipSound();
+    revealed.push({ idx: card.dataset.index, card, img: board[card.dataset.index] });
+
+    if(revealed.length === 2){
+        lock = true;
+        setTimeout(checkMatch, REVEAL_ON_CLICK_MS);
+    }
+}
+
+function checkMatch(){
+    const [a,b] = revealed;
+    
+    if(a.img === b.img){
+        score += SCORE_PER_MATCH; 
+        scoreEl.textContent = score;
+
+        a.card.classList.add("matched");
+        b.card.classList.add("matched");
+
+        playMatchSound();
+
+        const colA = parseInt(a.idx) % COLS;
+        const colB = parseInt(b.idx) % COLS;
+        
+        const matchedIndices = [parseInt(a.idx), parseInt(b.idx)];
+        
+        setTimeout(() => {
+            shiftColumns(colA, colB, matchedIndices); 
+            lock = false; 
+        }, 300);
+
+    } else {
+        hideCard(a.card);
+        hideCard(b.card);
+        playMismatchSound();
+        lock = false; 
+    }
+    revealed = [];
+}
+
+function shiftColumns(colA, colB, matchedIndices) {
+    processSingleColumnShift(colA, matchedIndices);
+
+    if (colA !== colB) {
+        processSingleColumnShift(colB, matchedIndices);
+    }
+}
+
+function processSingleColumnShift(colIndex, matchedIndices) {
+    let oldColumn = [];
+    
+    for (let row = 0; row < ROWS; row++) {
+        const index = row * COLS + colIndex;
+        oldColumn.push({ 
+            img: board[index], 
+            index: index 
+        });
+    }
+
+    let filteredColumn = oldColumn.filter(item => !matchedIndices.includes(item.index));
+    
+    const removedCount = ROWS - filteredColumn.length;
+    
+    for (let row = 0; row < ROWS; row++) {
+        const index = row * COLS + colIndex;
+        const cardEl = document.querySelector(`[data-index='${index}']`);
+
+        if (row < removedCount) {
+             const newCardImg = IMAGE_PATHS[Math.floor(Math.random() * IMAGE_PATHS.length)];
+             board[index] = newCardImg;
+             cardEl.querySelector("img").src = newCardImg;
+             cardEl.classList.add("new-entry"); 
+        } else {
+            const newCard = filteredColumn[row - removedCount];
+            board[index] = newCard.img;
+            cardEl.querySelector("img").src = newCard.img;
+            cardEl.classList.remove("new-entry");
+        }
+
+        cardEl.classList.remove("matched");
+        hideCard(cardEl);
+        
+        setTimeout(() => cardEl.classList.remove("new-entry"), 500); 
+    }
+}
+
+function startTimer(){
+    timer = setInterval(()=>{
+        TIME_LEFT--;
+        timerEl.textContent = TIME_LEFT;
+        if(TIME_LEFT<=0){
+            endGame();
+        }
+    },1000);
+}
+
+helpBtn.onclick = ()=>{
+    if(lock || helpUses <= 0) return; 
+    
+    lock = true;
+    revealAll();
+    
+    helpUses--;
+    helpTextEl.textContent = `Help (${helpUses} remaining)`;
+    if (helpUses === 0) {
+        helpBtn.disabled = true;
+        helpBtn.style.animation = 'none';
+        helpBtn.style.backgroundColor = '#aaa';
+    }
+
+    setTimeout(()=>{ 
+        hideAll(); 
+        lock=false; 
+    }, HELP_SHOW_MS);
+}
+
+
+function showGameElements() {
+    startScreenEl.style.display = 'none';
+    document.getElementById("hud").style.display = 'flex'; 
+    document.getElementById("controls").style.display = 'flex';
+    document.getElementById("game-container").style.display = 'grid'; 
+}
+
+function startGame() {
+    showGameElements();
+
+    clearInterval(timer);
+    TIME_LEFT = 90;
+    score = 0;
+    lock = false;
+    revealed = [];
+    helpUses = 3;
+
+    timerEl.textContent = TIME_LEFT;
+    scoreEl.textContent = score;
+    helpTextEl.textContent = `Help (${helpUses} remaining)`;
+    helpBtn.disabled = false;
+    helpBtn.style.animation = 'pulse 1s infinite alternate';
+    resultScreen.style.display = 'none';
+    
+    generateBoard();
+    createBoardUI();
+    
+    const imagesLoaded = Array.from(document.images).filter(img => img.src.includes('card')).map(img => new Promise(resolve => {
+        if (img.complete) {
+            resolve();
+        } else {
+            img.onload = resolve;
+            img.onerror = resolve; 
+        }
+    }));
+
+    Promise.all(imagesLoaded).then(() => {
+        revealAll();
+        setTimeout(()=>{
+            hideAll();
+            startTimer();
+        }, REVEAL_START_MS);
+    });
+}
+
+document.getElementById("shareTwitterBtn").onclick = () => {
+    const tweetText = encodeURIComponent(`I scored ${score} in the 4x6 Stork Memory Game! Beat my score! 🧠`);
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${tweetText}`;
+    window.open(twitterUrl, '_blank');
+};
+
+document.getElementById("startButton").onclick = startGame;
+document.getElementById("restartBtn").onclick = () => {
+    document.getElementById("hud").style.display = 'none';
+    document.getElementById("controls").style.display = 'none';
+    document.getElementById("game-container").style.display = 'none';
+    initApp();
+};
+
+function initApp() {
+    startScreenEl.style.display = 'flex';
+    resultScreen.style.display = 'none';
+}
+
+initApp();
+</script>
+</body>
+</html>
