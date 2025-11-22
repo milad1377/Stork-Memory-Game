@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Stork Memory Game</title>
+<title>Stork Memory Game - Multiplayer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <style>
@@ -25,18 +25,18 @@ body {
     font-family: Arial, sans-serif;
     text-align: center;
     min-height: 100vh;
+    margin: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-bottom: 20px;
+    overflow-x: hidden;
 }
 
-#hud, #controls, #game-container {
-    display: none; 
-}
+/* UI Containers */
+#hud, #controls, #game-container { display: none; }
 
 #game-container {
-    margin: 20px auto;
+    margin: 10px auto;
     display: grid; 
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(6, 1fr); 
@@ -47,196 +47,186 @@ body {
 }
 
 .card {
-    width: 100%;
-    height: 100%; 
-    border-radius: 5px; 
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
+    width: 100%; height: 100%; border-radius: 5px; cursor: pointer;
+    position: relative; overflow: hidden;
     transition: opacity 0.3s ease-in-out, transform 0.2s, box-shadow 0.2s; 
-    aspect-ratio: 1 / 1;
-    border: 1px solid #555; 
+    aspect-ratio: 1 / 1; border: 1px solid #555; 
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); 
 }
 
-/* ---------------------------------- START SCREEN ---------------------------------- */
-#start-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #1a1a2e;
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    color: #fff;
-    font-size: 20px;
-}
-
-#start-screen img {
-    max-width: 80%;
-    max-height: 40vh;
-    margin-bottom: 30px;
-    border-radius: 10px;
-}
-
-.card:active:not(.matched) {
-    transform: scale(0.95);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-}
-
-.card:hover:not(.matched) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5); 
-}
-
-.card.matched {
-    opacity: 0;
-    pointer-events: none; 
-}
-
-.card.new-entry {
-    animation: fall 0.5s ease-out;
-}
-
-.card img {
-    width: 100%;
-    height: 100%;
-    border-radius: 5px;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
+.card:active:not(.matched) { transform: scale(0.95); }
+.card.matched { opacity: 0; pointer-events: none; }
+.card.new-entry { animation: fall 0.5s ease-out; }
+.card img { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
 .cover {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border-radius: 5px;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: #333 url('logo.png') center/100% no-repeat; 
-    background-size: cover; 
-    z-index: 2;
-    transition: display 0s;
+    background-size: cover; z-index: 2;
 }
 
-/* ---------------------------------- UTILITY & HUD ---------------------------------- */
-#hud {
-    margin-top: 20px;
-    font-size: 20px;
-    display: flex; 
-    justify-content: space-around;
-    width: 100%;
-    max-width: 450px;
+/* ---------------------------------- SCREENS (Start, Lobby, GameOver) ---------------------------------- */
+.overlay-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #1a1a2e; z-index: 20;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center; color: #fff;
 }
+.hidden { display: none !important; }
 
-#controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+#gameLogo { max-width: 200px; margin-bottom: 20px; border-radius: 10px; }
 
+/* Buttons & Inputs */
 button {
-    background: #00ff99;
-    border: none;
-    padding: 10px 20px;
-    font-size: 18px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin: 10px 5px;
-    transition: background 0.3s, transform 0.1s;
+    background: #00ff99; border: none; padding: 12px 24px;
+    font-size: 18px; border-radius: 8px; cursor: pointer;
+    margin: 10px; font-weight: bold; color: #1a1a2e;
+    transition: transform 0.1s;
+}
+button:active { transform: scale(0.98); }
+button:disabled { background: #555; cursor: not-allowed; }
+
+input[type="text"] {
+    padding: 10px; border-radius: 5px; border: 1px solid #00ff99;
+    background: #0f0f1a; color: white; font-size: 16px; text-align: center;
+    margin-bottom: 10px; width: 200px;
 }
 
-button:active {
-    transform: scale(0.98);
+/* Lobby Specifics */
+.lobby-panel {
+    background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.1); width: 90%; max-width: 400px;
 }
+.player-list { list-style: none; padding: 0; margin: 15px 0; text-align: left; }
+.player-list li {
+    background: rgba(255,255,255,0.1); padding: 8px; margin-bottom: 5px;
+    border-radius: 5px; display: flex; justify-content: space-between;
+}
+.is-host { color: #ffd700; font-size: 0.8em; }
 
-#helpBtn {
-    animation: pulse 1s infinite alternate;
+/* ---------------------------------- LIVE LEADERBOARD ---------------------------------- */
+#live-leaderboard {
+    position: fixed; top: 10px; right: 10px;
+    background: rgba(0,0,0,0.7); padding: 10px;
+    border-radius: 8px; font-size: 12px; z-index: 15;
+    display: none; width: 150px; text-align: left;
 }
+.lb-row { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid #444; padding-bottom: 2px;}
+.lb-score { color: #00ff99; font-weight: bold; }
 
-#helpBtn:disabled {
-    background: #aaa;
-    cursor: not-allowed;
-    animation: none;
+/* ---------------------------------- HUD ---------------------------------- */
+#hud {
+    margin-top: 10px; font-size: 18px; display: flex; 
+    justify-content: space-around; width: 100%; max-width: 450px;
 }
+#controls { margin-top: 5px; display: flex; justify-content: center; }
+#helpBtn { padding: 8px 16px; font-size: 14px; animation: pulse 1s infinite alternate; }
 
-#helpBtn span {
-    margin-right: 5px;
-}
-
-#result-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    font-size: 24px;
-    display: none; 
-}
-
-#result-screen h2 {
-    color: #00ff99;
-    font-size: 48px;
-    margin-bottom: 5px;
-}
-#result-screen p {
-    margin: 10px 0;
-}
-#result-screen #high-score-display {
-    color: #ffd700;
-    font-weight: bold;
-    margin-top: 15px;
-}
+/* Game Over */
+#result-screen { background: rgba(0, 0, 0, 0.95); z-index: 30; }
+#result-screen h2 { color: #00ff99; font-size: 36px; }
+#multiplayer-results { width: 80%; max-width: 300px; margin-bottom: 20px; }
+.result-row { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #333; }
 </style>
 </head>
 <body>
 
-<div id="start-screen">
-    <h2>Stork Memory Game</h2>
-    <img id="gameLogo" src="game_logo.png" alt="Game Logo"> 
-    <button id="startButton">Start Game</button>
+<div id="live-leaderboard">
+    <div style="text-align:center; color:#aaa; margin-bottom:5px;">Live Scores</div>
+    <div id="lb-content"></div>
+</div>
+
+<div id="start-screen" class="overlay-screen">
+    <h2>Stork Memory</h2>
+    <img id="gameLogo" src="game_logo.png" alt="Logo">
+    
+    <div id="loginPanel">
+        <input type="text" id="playerNameInput" placeholder="Enter Nickname" maxlength="12">
+        <br>
+        <button id="soloBtn">Play Solo</button>
+        <button id="multiBtn" style="background:#00bfff; color:white;">Multiplayer</button>
+    </div>
+</div>
+
+<div id="lobby-screen" class="overlay-screen hidden">
+    <div class="lobby-panel">
+        <h3>Game Lobby</h3>
+        <p style="font-size:12px; color:#aaa;">Room ID: <span id="displayRoomId" style="color:#fff; font-family:monospace;">...</span></p>
+        
+        <ul class="player-list" id="lobbyPlayerList"></ul>
+        
+        <div id="hostControls" class="hidden">
+            <button id="hostStartBtn">START GAME</button>
+        </div>
+        <div id="clientStatus" class="hidden">
+            <p style="color:#00ff99;">Waiting for host...</p>
+        </div>
+        <button onclick="location.reload()" style="background:#ff4d4d; color:white; font-size:14px;">Leave</button>
+    </div>
 </div>
 
 <h1 style="display: none;">Stork Memory Game</h1>
 
 <div id="hud">
-    Score: <span id="score">0</span> |
-    Time: <span id="timer">90</span>
+    Score: <span id="score">0</span> | Time: <span id="timer">90</span>
 </div>
 
 <div id="controls">
-    <button id="helpBtn">💡 <span id="helpText">Help (3 remaining)</span></button>
+    <button id="helpBtn">💡 <span id="helpText">Help (3)</span></button>
 </div>
 
 <div id="game-container"></div>
 
-<div id="result-screen">
+<div id="result-screen" class="overlay-screen hidden">
     <h2>Game Over!</h2>
-    <p>Your Final Score: <span id="final-score">0</span></p>
+    <p>Your Score: <span id="final-score">0</span></p>
+    
+    <div id="multiplayer-results" class="hidden">
+        <h3>Rankings</h3>
+        <div id="mp-results-content"></div>
+    </div>
+    
     <p id="high-score-display"></p>
-    <button id="restartBtn">Start New Game</button>
-    <button id="shareTwitterBtn" style="background: #1DA1F2;">Share on X (Twitter)</button>
+    <button onclick="location.reload()">Main Menu</button>
+    <button id="shareTwitterBtn" style="background: #1DA1F2; color:white;">Share on X</button>
 </div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+  import { getDatabase, ref, set, push, onValue, update, remove, onDisconnect, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC9UjXGGa6Hp4ZacJpx9fWwnAX6QImh8qU",
+    authDomain: "stork-memory-game.firebaseapp.com",
+    databaseURL: "https://stork-memory-game-default-rtdb.firebaseio.com",
+    projectId: "stork-memory-game",
+    storageBucket: "stork-memory-game.firebasestorage.app",
+    messagingSenderId: "930919129124",
+    appId: "1:930919129124:web:5920a81fc02e4706d9b8b1",
+    measurementId: "G-TFMESMJS8P"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  
+  window.db = db;
+  window.dbRef = ref;
+  window.dbSet = set;
+  window.dbUpdate = update;
+  window.dbRemove = remove;
+  window.dbOnValue = onValue;
+  window.dbGet = get;
+  window.dbOnDisconnect = onDisconnect;
+</script>
+
 <script>
+// ---------------------------------
+// GAME CONFIG & VARIABLES
+// ---------------------------------
 const ROWS = 6;
 const COLS = 4;
 const TOTAL = ROWS * COLS; 
 const SCORE_PER_MATCH = 10; 
-const REVEAL_START_MS = 1000;
 const REVEAL_ON_CLICK_MS = 300;
 const HELP_SHOW_MS = 1000;
 const HIGH_SCORE_KEY = 'storkHighScore';
@@ -245,17 +235,28 @@ let TIME_LEFT = 90;
 const UNIQUE_CARD_COUNT = TOTAL / 2;
 let helpUses = 3; 
 
+// Generate Image Paths
 const IMAGE_PATHS = [];
 for (let i = 1; i <= UNIQUE_CARD_COUNT; i++) {
     IMAGE_PATHS.push(`card${i}.png`);
 }
 
+// Game State
 let board = [];
 let revealed = [];
 let lock = false;
 let score = 0;
 let timer;
+let isGameActive = false;
 
+// Multiplayer State
+let isMultiplayer = false;
+let roomId = null;
+let playerId = null;
+let playerName = "Player";
+let isHost = false;
+
+// DOM Elements
 const timerEl = document.getElementById("timer");
 const scoreEl = document.getElementById("score");
 const helpBtn = document.getElementById("helpBtn");
@@ -263,61 +264,44 @@ const helpTextEl = document.getElementById("helpText");
 const resultScreen = document.getElementById("result-screen");
 const highScoreDisplayEl = document.getElementById("high-score-display");
 const startScreenEl = document.getElementById("start-screen");
+const lobbyScreenEl = document.getElementById("lobby-screen");
+const playerNameInput = document.getElementById("playerNameInput");
 
 // ----------------------------
-// Sound Effects using Web Audio API
+// AUDIO SYSTEM
 // ----------------------------
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 function playSound(freq, type = "sine", duration = 0.1, volume = 0.2) {
+    if(audioCtx.state === 'suspended') audioCtx.resume();
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-
     oscillator.type = type;
     oscillator.frequency.value = freq;
-
     gainNode.gain.value = volume;
-
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-
     oscillator.start();
     oscillator.stop(audioCtx.currentTime + duration);
 }
-
-// Specific Game Sounds
-function playFlipSound() {
-    playSound(600, "square", 0.1, 0.2); // کارت فلپ
-}
-
-function playMatchSound() {
-    playSound(400, "sine", 0.1, 0.2);
-    setTimeout(() => playSound(500, "sine", 0.1, 0.2), 100);
-    setTimeout(() => playSound(600, "sine", 0.15, 0.25), 200);
-}
-
-function playMismatchSound() {
-    playSound(200, "sawtooth", 0.2, 0.3);
-}
+function playFlipSound() { playSound(600, "square", 0.1, 0.2); }
+function playMatchSound() { playSound(400, "sine", 0.1, 0.2); setTimeout(() => playSound(600, "sine", 0.15, 0.25), 200); }
+function playMismatchSound() { playSound(200, "sawtooth", 0.2, 0.3); }
 
 // ---------------------------------
-// Game Functions
+// GAME LOGIC
 // ---------------------------------
-function getHighScore() {
-    return parseInt(localStorage.getItem(HIGH_SCORE_KEY) || 0, 10);
-}
+
+function getHighScore() { return parseInt(localStorage.getItem(HIGH_SCORE_KEY) || 0, 10); }
 
 function updateHighScore() {
-    const currentHighScore = getHighScore();
-    if (score > currentHighScore) {
-        localStorage.setItem(HIGH_SCORE_KEY, score);
-        return score;
-    }
-    return currentHighScore;
+    const current = getHighScore();
+    if (score > current) { localStorage.setItem(HIGH_SCORE_KEY, score); return score; }
+    return current;
 }
 
 function generateBoard() {
     board = [...IMAGE_PATHS, ...IMAGE_PATHS];
+    // Fisher-Yates Shuffle
     for (let i = board.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [board[i], board[j]] = [board[j], board[i]];
@@ -341,37 +325,17 @@ function createBoardUI(){
         card.appendChild(img);
         card.appendChild(cover);
         container.appendChild(card);
-
         card.addEventListener("click", () => handleCardClick(card));
     }
 }
 
-function revealCard(card){
-    card.querySelector(".cover").style.display = "none";
-}
-function hideCard(card){
-    card.querySelector(".cover").style.display = "block";
-}
-function revealAll(){
-    document.querySelectorAll(".card").forEach(revealCard);
-}
-function hideAll(){
-    document.querySelectorAll(".card").forEach(hideCard);
-}
-
-function endGame() {
-    clearInterval(timer);
-    lock = true;
-    
-    const finalHighScore = updateHighScore();
-    document.getElementById("final-score").textContent = score;
-    highScoreDisplayEl.textContent = `High Score: ${finalHighScore}`;
-    resultScreen.style.display = 'flex';
-}
+function revealCard(card){ card.querySelector(".cover").style.display = "none"; }
+function hideCard(card){ card.querySelector(".cover").style.display = "block"; }
+function revealAll(){ document.querySelectorAll(".card").forEach(revealCard); }
+function hideAll(){ document.querySelectorAll(".card").forEach(hideCard); }
 
 function handleCardClick(card){
-    if(lock) return;
-    
+    if(lock || !isGameActive) return;
     if(card.querySelector(".cover").style.display === "none" || card.classList.contains("matched")) return;
 
     revealCard(card);
@@ -388,17 +352,20 @@ function checkMatch(){
     const [a,b] = revealed;
     
     if(a.img === b.img){
+        // MATCH
         score += SCORE_PER_MATCH; 
         scoreEl.textContent = score;
+        
+        // Sync Score
+        if(isMultiplayer) syncScore();
 
         a.card.classList.add("matched");
         b.card.classList.add("matched");
-
         playMatchSound();
 
+        // Falling Logic
         const colA = parseInt(a.idx) % COLS;
         const colB = parseInt(b.idx) % COLS;
-        
         const matchedIndices = [parseInt(a.idx), parseInt(b.idx)];
         
         setTimeout(() => {
@@ -407,6 +374,7 @@ function checkMatch(){
         }, 300);
 
     } else {
+        // NO MATCH
         hideCard(a.card);
         hideCard(b.card);
         playMismatchSound();
@@ -415,27 +383,19 @@ function checkMatch(){
     revealed = [];
 }
 
+// Logic to make cards fall like Match-3
 function shiftColumns(colA, colB, matchedIndices) {
     processSingleColumnShift(colA, matchedIndices);
-
-    if (colA !== colB) {
-        processSingleColumnShift(colB, matchedIndices);
-    }
+    if (colA !== colB) processSingleColumnShift(colB, matchedIndices);
 }
 
 function processSingleColumnShift(colIndex, matchedIndices) {
     let oldColumn = [];
-    
     for (let row = 0; row < ROWS; row++) {
         const index = row * COLS + colIndex;
-        oldColumn.push({ 
-            img: board[index], 
-            index: index 
-        });
+        oldColumn.push({ img: board[index], index: index });
     }
-
     let filteredColumn = oldColumn.filter(item => !matchedIndices.includes(item.index));
-    
     const removedCount = ROWS - filteredColumn.length;
     
     for (let row = 0; row < ROWS; row++) {
@@ -453,10 +413,8 @@ function processSingleColumnShift(colIndex, matchedIndices) {
             cardEl.querySelector("img").src = newCard.img;
             cardEl.classList.remove("new-entry");
         }
-
         cardEl.classList.remove("matched");
         hideCard(cardEl);
-        
         setTimeout(() => cardEl.classList.remove("new-entry"), 500); 
     }
 }
@@ -465,42 +423,53 @@ function startTimer(){
     timer = setInterval(()=>{
         TIME_LEFT--;
         timerEl.textContent = TIME_LEFT;
-        if(TIME_LEFT<=0){
-            endGame();
-        }
+        if(TIME_LEFT<=0) endGame();
     },1000);
 }
 
-helpBtn.onclick = ()=>{
-    if(lock || helpUses <= 0) return; 
+function endGame() {
+    clearInterval(timer);
+    isGameActive = false;
+    lock = true;
     
+    // Multiplayer End
+    if(isMultiplayer) syncFinish();
+
+    const finalHighScore = updateHighScore();
+    document.getElementById("final-score").textContent = score;
+    
+    if(!isMultiplayer) {
+        highScoreDisplayEl.textContent = `High Score: ${finalHighScore}`;
+        resultScreen.classList.remove("hidden");
+    } else {
+        // In multiplayer, result screen shows after syncing (handled in listener)
+        resultScreen.classList.remove("hidden");
+        document.getElementById('multiplayer-results').classList.remove('hidden');
+    }
+}
+
+// Help Button
+helpBtn.onclick = ()=>{
+    if(lock || helpUses <= 0 || !isGameActive) return; 
     lock = true;
     revealAll();
-    
     helpUses--;
-    helpTextEl.textContent = `Help (${helpUses} remaining)`;
+    helpTextEl.textContent = `Help (${helpUses})`;
     if (helpUses === 0) {
         helpBtn.disabled = true;
         helpBtn.style.animation = 'none';
         helpBtn.style.backgroundColor = '#aaa';
     }
-
-    setTimeout(()=>{ 
-        hideAll(); 
-        lock=false; 
-    }, HELP_SHOW_MS);
-}
-
-
-function showGameElements() {
-    startScreenEl.style.display = 'none';
-    document.getElementById("hud").style.display = 'flex'; 
-    document.getElementById("controls").style.display = 'flex';
-    document.getElementById("game-container").style.display = 'grid'; 
+    setTimeout(()=>{ hideAll(); lock=false; }, HELP_SHOW_MS);
 }
 
 function startGame() {
-    showGameElements();
+    startScreenEl.classList.add("hidden");
+    lobbyScreenEl.classList.add("hidden");
+    
+    document.getElementById("hud").style.display = 'flex'; 
+    document.getElementById("controls").style.display = 'flex';
+    document.getElementById("game-container").style.display = 'grid'; 
 
     clearInterval(timer);
     TIME_LEFT = 90;
@@ -508,24 +477,23 @@ function startGame() {
     lock = false;
     revealed = [];
     helpUses = 3;
+    isGameActive = true;
 
     timerEl.textContent = TIME_LEFT;
     scoreEl.textContent = score;
-    helpTextEl.textContent = `Help (${helpUses} remaining)`;
+    helpTextEl.textContent = `Help (${helpUses})`;
     helpBtn.disabled = false;
     helpBtn.style.animation = 'pulse 1s infinite alternate';
-    resultScreen.style.display = 'none';
     
     generateBoard();
     createBoardUI();
     
+    if(isMultiplayer) document.getElementById('live-leaderboard').style.display = 'block';
+
+    // Preload & Start
     const imagesLoaded = Array.from(document.images).filter(img => img.src.includes('card')).map(img => new Promise(resolve => {
-        if (img.complete) {
-            resolve();
-        } else {
-            img.onload = resolve;
-            img.onerror = resolve; 
-        }
+        if (img.complete) resolve();
+        else { img.onload = resolve; img.onerror = resolve; }
     }));
 
     Promise.all(imagesLoaded).then(() => {
@@ -533,31 +501,170 @@ function startGame() {
         setTimeout(()=>{
             hideAll();
             startTimer();
-        }, REVEAL_START_MS);
+        }, 1000);
     });
 }
 
-document.getElementById("shareTwitterBtn").onclick = () => {
-    const tweetText = encodeURIComponent(`I scored ${score} in the @StorkOracle Memory Game! Beat my score! 🧠 
-    https://stork-memory-game.vercel.app/`);
-    const twitterUrl = `https://x.com/intent/tweet?text=${tweetText}`;
-    window.open(twitterUrl, '_blank');
-};
+// ---------------------------------
+// MULTIPLAYER LOGIC
+// ---------------------------------
 
-document.getElementById("startButton").onclick = startGame;
-document.getElementById("restartBtn").onclick = () => {
-    document.getElementById("hud").style.display = 'none';
-    document.getElementById("controls").style.display = 'none';
-    document.getElementById("game-container").style.display = 'none';
-    initApp();
-};
-
-function initApp() {
-    startScreenEl.style.display = 'flex';
-    resultScreen.style.display = 'none';
+function getPlayerName(){
+    let name = playerNameInput.value.trim();
+    if(!name) name = "Stork_" + Math.floor(Math.random()*1000);
+    return name;
 }
 
-initApp();
+// 1. Create Lobby
+async function createLobby(){
+    if(!window.db) return alert("Connecting...");
+    
+    playerName = getPlayerName();
+    playerId = 'host_' + Date.now();
+    roomId = 'room_' + Math.floor(Math.random()*10000);
+    isHost = true;
+    isMultiplayer = true;
+
+    // Save Room
+    await window.dbSet(window.dbRef(window.db, `rooms/${roomId}`), {
+        status: 'lobby',
+        players: {
+            [playerId]: { name: playerName, score: 0, isHost: true, isFinished: false }
+        }
+    });
+
+    showLobbyUI();
+    listenToLobby();
+}
+
+// 2. Join Lobby
+async function joinLobby(){
+    if(!window.db) return alert("Connecting...");
+    
+    const inputRoom = prompt("Enter Room ID:");
+    if(!inputRoom) return;
+
+    // Check if room exists
+    const snapshot = await window.dbGet(window.dbRef(window.db, `rooms/${inputRoom}`));
+    if(!snapshot.exists()) return alert("Room not found!");
+
+    roomId = inputRoom;
+    playerName = getPlayerName();
+    playerId = 'p_' + Date.now();
+    isHost = false;
+    isMultiplayer = true;
+
+    // Save Player
+    await window.dbSet(window.dbRef(window.db, `rooms/${roomId}/players/${playerId}`), {
+        name: playerName, score: 0, isHost: false, isFinished: false
+    });
+
+    showLobbyUI();
+    listenToLobby();
+}
+
+function showLobbyUI(){
+    startScreenEl.classList.add('hidden');
+    lobbyScreenEl.classList.remove('hidden');
+    document.getElementById('displayRoomId').innerText = roomId;
+    
+    if(isHost) document.getElementById('hostControls').classList.remove('hidden');
+    else document.getElementById('clientStatus').classList.remove('hidden');
+}
+
+// 3. Listen for Updates
+function listenToLobby(){
+    const roomRef = window.dbRef(window.db, `rooms/${roomId}`);
+    
+    // Remove self on disconnect
+    window.dbOnDisconnect(window.dbRef(window.db, `rooms/${roomId}/players/${playerId}`)).remove();
+
+    window.dbOnValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        if(!data) {
+             if(isGameActive) return; // Prevent redirect if just finished
+             alert("Room closed."); location.reload(); return;
+        }
+
+        // Update Player List
+        const list = document.getElementById('lobbyPlayerList');
+        list.innerHTML = '';
+        const players = data.players || {};
+        
+        Object.values(players).forEach(p => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>${p.name}</span> ${p.isHost ? '<span class="is-host">HOST</span>' : ''}`;
+            list.appendChild(li);
+        });
+
+        // Start Game Trigger
+        if(data.status === 'playing' && !isGameActive) {
+            startGame();
+            listenForScores();
+        }
+    });
+}
+
+function listenForScores() {
+    const playersRef = window.dbRef(window.db, `rooms/${roomId}/players`);
+    window.dbOnValue(playersRef, (snapshot) => {
+        const players = snapshot.val();
+        if(!players) return;
+
+        const sorted = Object.values(players).sort((a,b) => b.score - a.score);
+        
+        // Update Live Leaderboard
+        const lbContent = document.getElementById('lb-content');
+        lbContent.innerHTML = '';
+        sorted.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'lb-row';
+            div.innerHTML = `<span>${p.name}</span> <span class="lb-score">${p.score}</span>`;
+            lbContent.appendChild(div);
+        });
+
+        // Update Final Results if finished
+        const mpResults = document.getElementById('mp-results-content');
+        mpResults.innerHTML = '';
+        sorted.forEach((p, index) => {
+            let rank = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index+1}`;
+            const div = document.createElement('div');
+            div.className = 'result-row';
+            div.innerHTML = `<span>${rank} ${p.name}</span> <span style="color:#00ff99">${p.score}</span>`;
+            mpResults.appendChild(div);
+        });
+    });
+}
+
+// 4. Actions
+document.getElementById('hostStartBtn').onclick = () => {
+    window.dbUpdate(window.dbRef(window.db, `rooms/${roomId}`), { status: 'playing' });
+};
+
+function syncScore(){
+    if(!roomId || !playerId) return;
+    window.dbUpdate(window.dbRef(window.db, `rooms/${roomId}/players/${playerId}`), { score: score });
+}
+
+function syncFinish(){
+    if(!roomId || !playerId) return;
+    window.dbUpdate(window.dbRef(window.db, `rooms/${roomId}/players/${playerId}`), { score: score, isFinished: true });
+}
+
+// ---------------------------------
+// EVENT LISTENERS
+// ---------------------------------
+document.getElementById("soloBtn").onclick = () => { isMultiplayer=false; startGame(); };
+document.getElementById("multiBtn").onclick = () => {
+    const choice = confirm("Press OK to Create a Room, Cancel to Join one.");
+    if(choice) createLobby(); else joinLobby();
+};
+
+document.getElementById("shareTwitterBtn").onclick = () => {
+    const tweetText = encodeURIComponent(`I scored ${score} in Stork Memory Game! #StorkOracle`);
+    window.open(`https://x.com/intent/tweet?text=${tweetText}`, '_blank');
+};
+
 </script>
 </body>
 </html>
